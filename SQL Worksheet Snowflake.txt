@@ -1,0 +1,126 @@
+CREATE OR REPLACE STORAGE INTEGRATION PBI_Integration 
+ TYPE = EXTERNAL_STAGE
+ STORAGE_PROVIDER = 'S3'
+ ENABLED = TRUE
+ STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::911167898089:role/powerbi.role'
+ STORAGE_ALLOWED_LOCATIONS = ('s3://powerbi.project0/')
+ COMMENT = 'Optional Comment'
+
+
+ //description Integration Object
+ desc integration PBI_Integration;
+//drop integration PBI_Integration
+
+-------------------------------------------
+
+CREATE database PowerBI;
+
+//creating schema 
+
+create schema PBI_Data;
+
+
+//creating table in the dataset
+create table PBI_Dataset (
+Year int, Location string, Area int,
+Rainfall float, Temperature float, Soil_type string,
+Irrigation string, yeilds int, Humidity float, Crops string, 
+price int, Season string
+
+);
+
+SELECT * FROM PBI_Dataset;
+
+
+
+//Creating stage 
+create stage PowerBI.PBI_Data.pbi_stage
+url = 's3://powerbi.project0'
+storage_integration = PBI_Integration
+
+
+//Loading data from csv file
+copy into PBI_Dataset
+from @pbi_stage
+file_format = (type=csv field_delimiter=',' skip_header=1)
+on_error = 'continue'
+
+SELECT * FROM PBI_Dataset;
+
+
+list @pbi_stage
+
+//performing transformations on the replica of the table 
+create table agriculture as 
+select * from PBI_DATASET;
+
+select * from agriculture;
+
+
+//transforming data
+update agriculture
+set rainfall = 1.1*rainfall;
+
+update agriculture
+set area = 0.9*area;
+
+//Creating a new column based on classification of year
+//year 2004-2009 - Y1
+//year 2010-2015 - Y2
+//year 2016-2019 - Y3
+
+ALTER TABLE Agriculture
+add Year_Group String;
+
+//Adding values to the new column
+update agriculture
+set year_group = 'Y1'
+where year>=2004 and year<=2009
+
+update agriculture
+set year_group = 'Y2'
+where year>=2010 and year<=2015
+
+update agriculture
+set year_group = 'Y3'
+where year>=2016 and year<=2019
+
+//creating new column based on classification on rainfall
+//Rainfall_Groups
+//Min 255 Max 4103
+
+//rainfall 255-1200 - Low
+//rainfall 1200-2800 - Medium
+//rainfall 2800-4103 - High
+
+alter table agriculture
+add rainfall_groups string; 
+
+update agriculture
+set rainfall_groups = 'Low'
+where rainfall>=255 and rainfall<=1200
+
+update agriculture
+set rainfall_groups = 'Medium'
+where rainfall>=1201 and rainfall<=2800
+
+update agriculture
+set rainfall_groups = 'High'
+where rainfall>=2801
+
+select * from agriculture
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
